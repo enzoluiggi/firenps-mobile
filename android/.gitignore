@@ -1,0 +1,21 @@
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+build/
+
+# Android
+.gradle/
+local.properties
+.cxx/
+
+# APKs
+*.apk
+*.aab
+
+# Keystores
+key.properties
+**/*.keystore
+**/*.jks
