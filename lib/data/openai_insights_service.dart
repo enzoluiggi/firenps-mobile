@@ -29,39 +29,39 @@ class OpenAiInsightsService {
     http.Response response;
     try {
       response = await _client
-      .post(
-        Uri.parse('https://api.openai.com/v1/chat/completions'),
-        headers: {
-          'Authorization': 'Bearer $apiKey',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'model': model,
-          'messages': [
-            {
-              'role': 'system',
-              'content':
-              'Você é um analista de experiência do cliente. Sua tarefa é analisar os dados de NPS fornecidos e gerar insights detalhados em português do Brasil, no formato JSON. O JSON deve conter os seguintes campos:\n\n' +
-        '- `resumo_executivo`: Um resumo conciso dos principais achados.\n' +
-        '- `sentimento_geral`: O sentimento predominante (positivo, negativo, neutro) com base nos comentários.\n' +
-        '- `pontos_positivos`: Uma lista de pontos positivos identificados.\n' +
-        '- `pontos_de_atencao`: Uma lista de pontos que requerem atenção.\n' +
-        '- `principais_reclamacoes`: Uma lista dos principais temas de reclamação, com exemplos de comentários.\n' +
-        '- `acoes_recomendadas`: Sugestões de ações para melhorar a experiência.\n' +
-        '- `prioridade_passos`: Prioridade para os próximos passos.\n\n' +
-        'Certifique-se de que a saída seja um JSON válido e que todos os campos estejam preenchidos de forma clara e objetiva. Os campos pontos_positivos, pontos_de_atencao, principais_reclamacoes e acoes_recomendadas devem ser arrays contendo apenas strings simples. Nunca retorne objetos dentro dessas listas.',
+          .post(
+            Uri.parse('https://api.openai.com/v1/chat/completions'),
+            headers: {
+              'Authorization': 'Bearer $apiKey',
+              'Content-Type': 'application/json',
             },
-            {
-              'role': 'user',
-              'content':
-              'Analise os dados NPS abaixo e traga insights praticos:\n\n'
-        '$surveySummary',
-            },
-          ],
-          'response_format': {'type': 'json_object'},
-        }),
-      )
-      .timeout(const Duration(seconds: 45));
+            body: jsonEncode({
+              'model': model,
+              'messages': [
+                {
+                  'role': 'system',
+                  'content':
+                      'Você é um analista de experiência do cliente. Sua tarefa é analisar os dados de NPS fornecidos e gerar insights detalhados em português do Brasil, no formato JSON. O JSON deve conter os seguintes campos:\n\n' +
+                      '- `resumo_executivo`: Um resumo conciso dos principais achados.\n' +
+                      '- `sentimento_geral`: O sentimento predominante (positivo, negativo, neutro) com base nos comentários.\n' +
+                      '- `pontos_positivos`: Uma lista de pontos positivos identificados.\n' +
+                      '- `pontos_de_atencao`: Uma lista de pontos que requerem atenção.\n' +
+                      '- `principais_reclamacoes`: Uma lista dos principais temas de reclamação, com exemplos de comentários.\n' +
+                      '- `acoes_recomendadas`: Sugestões de ações para melhorar a experiência.\n' +
+                      '- `prioridade_passos`: Prioridade para os próximos passos.\n\n' +
+                      'Certifique-se de que a saída seja um JSON válido e que todos os campos estejam preenchidos de forma clara e objetiva.',
+                },
+                {
+                  'role': 'user',
+                  'content':
+                      'Analise os dados NPS abaixo e traga insights praticos:\n\n'
+                      '$surveySummary',
+                },
+              ],
+              'response_format': {'type': 'json_object'},
+            }),
+          )
+          .timeout(const Duration(seconds: 45));
     } on TimeoutException {
       throw Exception('A OpenAI demorou muito para responder.');
     } on http.ClientException catch (error) {
@@ -76,13 +76,12 @@ class OpenAiInsightsService {
       throw Exception('Nao foi possivel gerar insights pela IA. Status: ${response.statusCode}, Resposta: ${response.body}');
     }
 
-    dev.log('Resposta OpenAI: ${response.body}');
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     final choices = body['choices'] as List;
     if (choices.isEmpty) {
       throw Exception('A OpenAI retornou uma lista de escolhas vazia.');
     }
-
+    
     final message = choices[0]['message'] as Map<String, dynamic>;
     final dynamic content = message['content'];
 
@@ -102,7 +101,7 @@ class OpenAiInsightsService {
       } else {
         throw Exception('Formato de conteúdo inesperado: ${content.runtimeType}');
       }
-
+      
       return NpsInsights.fromJson(insightsJson);
     } catch (e) {
       dev.log('Erro ao processar insights da OpenAI: $e');

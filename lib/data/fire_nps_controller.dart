@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:excel/excel.dart';
 
 import '../models/company.dart';
 import '../models/contact.dart';
@@ -753,6 +754,42 @@ class FireNpsController extends ChangeNotifier {
     return buffer.toString();
   }
 
+  List<int>? exportResponsesAsXlsx(String? surveyId, DateTimeRange? range) {
+    final excel = Excel.createExcel();
+    final sheet = excel['Respostas NPS'];
+    
+    // Cabeçalho
+    sheet.appendRow([
+      TextCellValue('Pesquisa'),
+      TextCellValue('Respondente'),
+      TextCellValue('Email'),
+      TextCellValue('Nota'),
+      TextCellValue('Feedback'),
+      TextCellValue('Regiao'),
+      TextCellValue('Estado'),
+      TextCellValue('Data'),
+    ]);
+
+    final surveysById = {
+      for (final survey in companySurveys) survey.id: survey,
+    };
+    for (final response in filteredResponses(surveyId, range)) {
+      final survey = surveysById[response.surveyId];
+      sheet.appendRow([
+        TextCellValue(survey?.title ?? 'Pesquisa'),
+        TextCellValue(response.contactName),
+        TextCellValue(response.email),
+        IntCellValue(response.score),
+        TextCellValue(response.comment),
+        TextCellValue(response.region),
+        TextCellValue(response.state),
+        TextCellValue(response.createdAt.toIso8601String()),
+      ]);
+    }
+
+    return excel.encode();
+  }
+
   void _seed() {
     final company = Company(
       id: 'company-1',
@@ -925,6 +962,61 @@ class FireNpsController extends ChangeNotifier {
         region: 'Sudeste',
         state: 'ES',
         createdAt: DateTime(2026, 4, 16),
+      ),
+      NpsResponse(
+        id: 'response-11',
+        surveyId: 'survey-1',
+        contactName: 'Carlos Alberto',
+        email: 'carlos.alberto@exemplo.com',
+        comment: 'O suporte técnico foi excelente, resolveram meu problema em minutos.',
+        score: 10,
+        region: 'Sudeste',
+        state: 'SP',
+        createdAt: DateTime(2026, 4, 17),
+      ),
+      NpsResponse(
+        id: 'response-12',
+        surveyId: 'survey-1',
+        contactName: 'Maria Eduarda',
+        email: 'maria.eduarda@exemplo.com',
+        comment: 'O sistema é um pouco lento em horários de pico, mas atende bem.',
+        score: 7,
+        region: 'Sul',
+        state: 'RS',
+        createdAt: DateTime(2026, 4, 17),
+      ),
+      NpsResponse(
+        id: 'response-13',
+        surveyId: 'survey-1',
+        contactName: 'João Paulo',
+        email: 'joao.paulo@exemplo.com',
+        comment: 'Tive dificuldades com a interface, achei pouco intuitiva.',
+        score: 4,
+        region: 'Nordeste',
+        state: 'BA',
+        createdAt: DateTime(2026, 4, 18),
+      ),
+      NpsResponse(
+        id: 'response-14',
+        surveyId: 'survey-1',
+        contactName: 'Fernanda Lima',
+        email: 'fernanda.lima@exemplo.com',
+        comment: 'Excelente custo-benefício, recomendo fortemente.',
+        score: 10,
+        region: 'Sudeste',
+        state: 'RJ',
+        createdAt: DateTime(2026, 4, 18),
+      ),
+      NpsResponse(
+        id: 'response-15',
+        surveyId: 'survey-1',
+        contactName: 'Ricardo Souza',
+        email: 'ricardo.souza@exemplo.com',
+        comment: 'Faltam algumas integrações importantes para o meu fluxo de trabalho.',
+        score: 6,
+        region: 'Centro-Oeste',
+        state: 'MT',
+        createdAt: DateTime(2026, 4, 19),
       ),
     ]);
   }

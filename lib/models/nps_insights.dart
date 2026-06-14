@@ -23,8 +23,6 @@ class NpsInsights {
     String toStringValue(dynamic value) {
       if (value == null) return '';
       if (value is String) return value;
-      if (value is Map<String, dynamic>) return jsonEncode(value);
-      if (value is List) return value.map((e) => e.toString()).join(', ');
       return value.toString();
     }
 
@@ -62,11 +60,11 @@ class NpsInsights {
   @override
   String toString() {
     return 'Resumo Executivo: $resumoExecutivo\n\n' +
-    'Sentimento Geral: $sentimentoGeral\n\n' +
-    'Pontos Positivos: ${pontosPositivos.join(', ')}\n\n' +
-    'Pontos de Atenção: ${pontosDeAtencao.join(', ')}\n\n' +
-    'Principais Reclamações: ${principaisReclamacoes.join(', ')}\n\n' +
-    'Ações Recomendadas: ${acoesRecomendadas.join(', ')}\n\n' +
-    'Prioridade para os Próximos Passos: $prioridadePassos';
+           'Sentimento Geral: $sentimentoGeral\n\n' +
+           'Pontos Positivos: ${pontosPositivos.join(', ')}\n\n' +
+           'Pontos de Atenção: ${pontosDeAtencao.join(', ')}\n\n' +
+           'Principais Reclamações: ${principaisReclamacoes.join(', ')}\n\n' +
+           'Ações Recomendadas: ${acoesRecomendadas.join(', ')}\n\n' +
+           'Prioridade para os Próximos Passos: $prioridadePassos';
   }
 }

@@ -1,4 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 import '../../data/fire_nps_controller.dart';
 import '../../models/nps_response.dart';
@@ -18,6 +24,7 @@ class InsightsScreen extends StatefulWidget {
 class _InsightsScreenState extends State<InsightsScreen> {
   var isLoading = false;
   NpsInsights? generatedInsights;
+  final ScreenshotController _screenshotController = ScreenshotController();
 
   @override
   Widget build(BuildContext context) {
@@ -26,13 +33,17 @@ class _InsightsScreenState extends State<InsightsScreen> {
     }
 
     if (generatedInsights != null) {
-      return _InsightsResultView(
-        insights: generatedInsights!,
-        onRegenerate: _generateInsights,
-        onExit: () {
-          // Ao clicar em sair, a tela volta para o estado inicial dos insights.
-          setState(() => generatedInsights = null);
-        },
+      return Screenshot(
+        controller: _screenshotController,
+        child: _InsightsResultView(
+          insights: generatedInsights!,
+          onRegenerate: _generateInsights,
+          onShare: _shareInsightsAsPdf,
+          onExit: () {
+            // Ao clicar em sair, a tela volta para o estado inicial dos insights.
+            setState(() => generatedInsights = null);
+          },
+        ),
       );
     }
 
@@ -59,6 +70,34 @@ class _InsightsScreenState extends State<InsightsScreen> {
       isLoading = false;
       generatedInsights = widget.controller.currentNpsInsights;
     });
+  }
+
+  Future<void> _shareInsightsAsPdf() async {
+    final image = await _screenshotController.capture();
+    if (image == null) return;
+
+    final pdf = pw.Document();
+    final pdfImage = pw.MemoryImage(image);
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Center(
+            child: pw.Image(pdfImage, fit: pw.BoxFit.contain),
+          );
+        },
+      ),
+    );
+
+    final directory = await getTemporaryDirectory();
+    final file = File('${directory.path}/insights_nps.pdf');
+    await file.writeAsBytes(await pdf.save());
+
+    await Share.shareXFiles(
+      [XFile(file.path)],
+      text: 'Confira os Insights da IA sobre o NPS em PDF',
+    );
   }
 }
 
@@ -139,11 +178,13 @@ class _InsightsResultView extends StatelessWidget {
   const _InsightsResultView({
     required this.insights,
     required this.onRegenerate,
+    required this.onShare,
     required this.onExit,
   });
 
   final NpsInsights insights;
   final VoidCallback onRegenerate;
+  final VoidCallback onShare;
   final VoidCallback onExit;
 
   @override
@@ -160,7 +201,21 @@ class _InsightsResultView extends StatelessWidget {
               label: const Text('Gerar novamente'),
             ),
             const SizedBox(height: 8),
-            OutlinedButton(onPressed: onExit, child: const Text('Sair')),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onShare,
+                    icon: const Icon(Icons.picture_as_pdf_outlined),
+                    label: const Text('PDF'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(onPressed: onExit, child: const Text('Sair')),
+                ),
+              ],
+            ),
           ],
         ),
         const SizedBox(height: 12),

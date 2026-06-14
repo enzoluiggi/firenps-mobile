@@ -1,4 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 import '../../data/fire_nps_controller.dart';
 import '../../theme/app_theme.dart';
@@ -17,6 +23,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   String? selectedSurveyId;
   DateTimeRange? selectedRange;
+  final ScreenshotController _screenshotController = ScreenshotController();
 
   @override
   Widget build(BuildContext context) {
@@ -30,10 +37,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       selectedRange,
     );
 
-    return ListView(
-      padding: const EdgeInsets.all(12),
-      children: [
-        ScoreSummaryCard(
+    return Screenshot(
+      controller: _screenshotController,
+      child: ListView(
+        padding: const EdgeInsets.all(12),
+        children: [
+          ScoreSummaryCard(
           score: reportMetrics.score.toStringAsFixed(0),
           zone: reportMetrics.zone,
         ),
@@ -185,17 +194,82 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _showCsvPreview,
-            icon: const Icon(Icons.download_outlined),
-            label: const Text('Exportar CSV'),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _showCsvPreview,
+                icon: const Icon(Icons.download_outlined),
+                label: const Text('CSV'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _exportXlsx,
+                icon: const Icon(Icons.table_view_outlined),
+                label: const Text('XLSX'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _shareDashboardAsPdf,
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('PDF'),
+              ),
+            ),
+          ],
         ),
       ],
-    );
-  }
+    ),
+  );
+}
+
+Future<void> _exportXlsx() async {
+  final bytes = widget.controller.exportResponsesAsXlsx(
+    selectedSurveyId,
+    selectedRange,
+  );
+  if (bytes == null) return;
+
+  final directory = await getTemporaryDirectory();
+  final file = File('${directory.path}/relatorio_nps.xlsx');
+  await file.writeAsBytes(bytes);
+
+  await Share.shareXFiles(
+    [XFile(file.path)],
+    text: 'Relatorio NPS em Excel',
+  );
+}
+
+Future<void> _shareDashboardAsPdf() async {
+  final image = await _screenshotController.capture();
+  if (image == null) return;
+
+  final pdf = pw.Document();
+  final pdfImage = pw.MemoryImage(image);
+
+  pdf.addPage(
+    pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      build: (pw.Context context) {
+        return pw.Center(
+          child: pw.Image(pdfImage, fit: pw.BoxFit.contain),
+        );
+      },
+    ),
+  );
+
+  final directory = await getTemporaryDirectory();
+  final file = File('${directory.path}/dashboard_nps.pdf');
+  await file.writeAsBytes(await pdf.save());
+
+  await Share.shareXFiles(
+    [XFile(file.path)],
+    text: 'Confira o Dashboard de NPS em PDF',
+  );
+}
 
   Future<void> _selectDateRange() async {
     final picked = await showDateRangePicker(
