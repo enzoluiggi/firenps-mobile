@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/fire_nps_controller.dart';
 import '../../models/nps_response.dart';
+import '../../models/nps_insights.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_shell_widgets.dart';
 
@@ -16,7 +17,7 @@ class InsightsScreen extends StatefulWidget {
 
 class _InsightsScreenState extends State<InsightsScreen> {
   var isLoading = false;
-  String? generatedInsights;
+  NpsInsights? generatedInsights;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +27,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
     if (generatedInsights != null) {
       return _InsightsResultView(
-        text: generatedInsights!,
+        insights: generatedInsights!,
         onRegenerate: _generateInsights,
         onExit: () {
           // Ao clicar em sair, a tela volta para o estado inicial dos insights.
@@ -48,9 +49,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
       generatedInsights = null;
     });
 
-    // Este delay simula o tempo de processamento da analise.
-    // Nao existe chamada de API aqui; tudo e calculado com os dados locais.
-    await Future<void>.delayed(const Duration(seconds: 2));
+    await widget.controller.generateNpsInsights();
 
     if (!mounted) {
       return;
@@ -58,123 +57,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
     setState(() {
       isLoading = false;
-      generatedInsights = _buildFakeInitialAnalysis();
+      generatedInsights = widget.controller.currentNpsInsights;
     });
-  }
-
-  String _buildFakeInitialAnalysis() {
-    final responses = widget.controller.companyResponses;
-    if (responses.isEmpty) {
-      return 'Analise inicial\n\n'
-          'Ainda nao existem respostas cadastradas para gerar insights.\n\n'
-          'Cadastre ou responda uma pesquisa NPS para que o sistema consiga '
-          'avaliar notas, comentarios e pontos de melhoria.';
-    }
-
-    final metrics = widget.controller.metricsForSurvey(null, null);
-    final buffer = StringBuffer();
-
-    final average = responses.isEmpty
-        ? 0.0
-        : responses.map((item) => item.score).reduce((a, b) => a + b) /
-              responses.length;
-
-    final lowScoreComments = responses
-        .where((item) => item.classification == NpsClassification.detractor)
-        .where((item) => item.comment.trim().isNotEmpty)
-        .map((item) => '- ${item.contactName}: "${item.comment}"')
-        .take(3)
-        .toList();
-
-    final highScoreComments = responses
-        .where((item) => item.classification == NpsClassification.promoter)
-        .where((item) => item.comment.trim().isNotEmpty)
-        .map((item) => '- ${item.contactName}: "${item.comment}"')
-        .take(3)
-        .toList();
-
-    final responsesByRegion = <String, List<NpsResponse>>{};
-    for (final response in responses) {
-      // O mapa agrupa as respostas por regiao para descobrir onde ha mais
-      // risco ou melhor satisfacao.
-      responsesByRegion.putIfAbsent(response.region, () => []).add(response);
-    }
-
-    String? criticalRegion;
-    double? criticalRegionScore;
-    responsesByRegion.forEach((region, regionResponses) {
-      final promoters = regionResponses
-          .where((item) => item.classification == NpsClassification.promoter)
-          .length;
-      final detractors = regionResponses
-          .where((item) => item.classification == NpsClassification.detractor)
-          .length;
-      final score = ((promoters - detractors) / regionResponses.length) * 100;
-
-      if (criticalRegionScore == null || score < criticalRegionScore!) {
-        criticalRegion = region;
-        criticalRegionScore = score;
-      }
-    });
-
-    buffer.writeln('Analise inicial');
-    buffer.writeln('');
-    buffer.writeln('Resumo executivo');
-    buffer.writeln(
-      'O NPS geral esta em ${metrics.score.toStringAsFixed(0)} '
-      '(${metrics.zone}), com ${metrics.total} respostas analisadas e '
-      'nota media ${average.toStringAsFixed(1)}.',
-    );
-    buffer.writeln('');
-    buffer.writeln('Distribuicao das respostas');
-    buffer.writeln(
-      '- Promotores: ${metrics.promoters} '
-      '(${metrics.promoterRate.toStringAsFixed(0)}%)',
-    );
-    buffer.writeln(
-      '- Neutros: ${metrics.neutrals} '
-      '(${metrics.neutralRate.toStringAsFixed(0)}%)',
-    );
-    buffer.writeln(
-      '- Detratores: ${metrics.detractors} '
-      '(${metrics.detractorRate.toStringAsFixed(0)}%)',
-    );
-
-    final regionToHighlight = criticalRegion;
-    final scoreToHighlight = criticalRegionScore;
-    if (regionToHighlight != null && scoreToHighlight != null) {
-      buffer.writeln('');
-      buffer.writeln('Ponto de atencao por regiao');
-      buffer.writeln(
-        'A regiao $regionToHighlight merece prioridade, pois apresenta o menor '
-        'NPS regional (${scoreToHighlight.toStringAsFixed(0)}).',
-      );
-    }
-
-    if (highScoreComments.isNotEmpty) {
-      buffer.writeln('');
-      buffer.writeln('Pontos positivos observados');
-      buffer.writeln(highScoreComments.join('\n'));
-    }
-
-    if (lowScoreComments.isNotEmpty) {
-      buffer.writeln('');
-      buffer.writeln('Pontos de atencao observados');
-      buffer.writeln(lowScoreComments.join('\n'));
-    }
-
-    buffer.writeln('');
-    buffer.writeln('Acoes recomendadas');
-    buffer.writeln('- Entrar em contato primeiro com clientes detratores.');
-    buffer.writeln(
-      '- Investigar comentarios sobre demora, confusao ou falta de acompanhamento.',
-    );
-    buffer.writeln(
-      '- Reforcar os pontos citados por promotores no atendimento.',
-    );
-    buffer.writeln('- Acompanhar a evolucao do NPS depois das melhorias.');
-
-    return buffer.toString().trim();
   }
 }
 
@@ -253,12 +137,12 @@ class _LoadingInsightsView extends StatelessWidget {
 
 class _InsightsResultView extends StatelessWidget {
   const _InsightsResultView({
-    required this.text,
+    required this.insights,
     required this.onRegenerate,
     required this.onExit,
   });
 
-  final String text;
+  final NpsInsights insights;
   final VoidCallback onRegenerate;
   final VoidCallback onExit;
 
@@ -280,7 +164,19 @@ class _InsightsResultView extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        _InsightTextCard(title: 'Analise inicial', text: text),
+        _InsightTextCard(title: 'Resumo Executivo', text: insights.resumoExecutivo),
+        const SizedBox(height: 12),
+        _InsightTextCard(title: 'Sentimento Geral', text: insights.sentimentoGeral),
+        const SizedBox(height: 12),
+        _InsightTextCard(title: 'Pontos Positivos', text: insights.pontosPositivos.join('\n')),
+        const SizedBox(height: 12),
+        _InsightTextCard(title: 'Pontos de Atenção', text: insights.pontosDeAtencao.join('\n')),
+        const SizedBox(height: 12),
+        _InsightTextCard(title: 'Principais Reclamações', text: insights.principaisReclamacoes.join('\n')),
+        const SizedBox(height: 12),
+        _InsightTextCard(title: 'Ações Recomendadas', text: insights.acoesRecomendadas.join('\n')),
+        const SizedBox(height: 12),
+        _InsightTextCard(title: 'Prioridade para os Próximos Passos', text: insights.prioridadePassos),
       ],
     );
   }

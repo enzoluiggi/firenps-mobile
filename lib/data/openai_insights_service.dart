@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:developer' as dev;
 import 'dart:convert';
+import '../models/nps_insights.dart';
 
 import 'package:http/http.dart' as http;
 
@@ -9,7 +11,7 @@ class OpenAiInsightsService {
     this.apiKey = const String.fromEnvironment('OPENAI_API_KEY'),
     this.model = const String.fromEnvironment(
       'OPENAI_MODEL',
-      defaultValue: 'gpt-5.2',
+      defaultValue: 'gpt-4o',
     ),
   }) : _client = client ?? http.Client();
 
@@ -19,35 +21,35 @@ class OpenAiInsightsService {
 
   bool get isConfigured => apiKey.trim().isNotEmpty;
 
-  Future<String> generateInsights(String surveySummary) async {
+  Future<NpsInsights> generateInsights(String surveySummary) async {
     if (!isConfigured) {
-      return 'Chave da OpenAI nao configurada.\n\n'
-          'Para demonstrar com IA real, execute o app usando:\n'
-          'flutter run --dart-define=OPENAI_API_KEY=SUA_CHAVE_AQUI';
+      throw Exception('Chave da OpenAI nao configurada.');
     }
 
     http.Response response;
     try {
-      // A chamada usa a Responses API da OpenAI para transformar os dados NPS
-      // em um texto de analise. O app envia apenas o resumo montado localmente.
       response = await _client
           .post(
-            Uri.parse('https://api.openai.com/v1/responses'),
+            Uri.parse('https://api.openai.com/v1/chat/completions'),
             headers: {
               'Authorization': 'Bearer $apiKey',
               'Content-Type': 'application/json',
             },
             body: jsonEncode({
               'model': model,
-              'input': [
+              'messages': [
                 {
-                  'role': 'developer',
+                  'role': 'system',
                   'content':
-                      'Voce e um analista de experiencia do cliente. Gere '
-                      'insights claros, objetivos e em portugues do Brasil. '
-                      'Organize em: Resumo executivo, Pontos positivos, '
-                      'Pontos de atencao, Acoes recomendadas e Prioridade '
-                      'para os proximos passos.',
+                      'Você é um analista de experiência do cliente. Sua tarefa é analisar os dados de NPS fornecidos e gerar insights detalhados em português do Brasil, no formato JSON. O JSON deve conter os seguintes campos:\n\n' +
+                      '- `resumo_executivo`: Um resumo conciso dos principais achados.\n' +
+                      '- `sentimento_geral`: O sentimento predominante (positivo, negativo, neutro) com base nos comentários.\n' +
+                      '- `pontos_positivos`: Uma lista de pontos positivos identificados.\n' +
+                      '- `pontos_de_atencao`: Uma lista de pontos que requerem atenção.\n' +
+                      '- `principais_reclamacoes`: Uma lista dos principais temas de reclamação, com exemplos de comentários.\n' +
+                      '- `acoes_recomendadas`: Sugestões de ações para melhorar a experiência.\n' +
+                      '- `prioridade_passos`: Prioridade para os próximos passos.\n\n' +
+                      'Certifique-se de que a saída seja um JSON válido e que todos os campos estejam preenchidos de forma clara e objetiva.',
                 },
                 {
                   'role': 'user',
@@ -56,67 +58,37 @@ class OpenAiInsightsService {
                       '$surveySummary',
                 },
               ],
+              'response_format': {'type': 'json_object'},
             }),
           )
           .timeout(const Duration(seconds: 45));
     } on TimeoutException {
-      return 'A OpenAI demorou muito para responder.\n\n'
-          'Tente novamente em alguns instantes.';
+      throw Exception('A OpenAI demorou muito para responder.');
     } on http.ClientException catch (error) {
-      return 'Nao foi possivel conectar na OpenAI.\n\n'
-          'Verifique se o aparelho/emulador esta com internet e tente novamente.\n\n'
-          '$error';
+      throw Exception('Nao foi possivel conectar na OpenAI: $error');
     } on FormatException catch (error) {
-      return 'A resposta da IA veio em um formato inesperado.\n\n$error';
+      throw Exception('A resposta da IA veio em um formato inesperado: $error');
     } catch (error) {
-      return 'Ocorreu um erro ao gerar insights pela IA.\n\n$error';
+      throw Exception('Ocorreu um erro ao gerar insights pela IA: $error');
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      return 'Nao foi possivel gerar insights pela IA.\n\n'
-          'Status: ${response.statusCode}\n'
-          'Resposta: ${response.body}';
+      throw Exception('Nao foi possivel gerar insights pela IA. Status: ${response.statusCode}, Resposta: ${response.body}');
     }
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final outputText = body['output_text'];
+    final outputText = body['choices'][0]['message']['content'];
     if (outputText is String && outputText.trim().isNotEmpty) {
-      return outputText.trim();
-    }
-
-    return _extractTextFromOutput(body);
-  }
-
-  String _extractTextFromOutput(Map<String, dynamic> body) {
-    final output = body['output'];
-    final buffer = StringBuffer();
-
-    if (output is List) {
-      for (final item in output) {
-        if (item is! Map<String, dynamic>) {
-          continue;
-        }
-
-        final content = item['content'];
-        if (content is! List) {
-          continue;
-        }
-
-        for (final contentItem in content) {
-          if (contentItem is Map<String, dynamic>) {
-            final text = contentItem['text'];
-            if (text is String) {
-              buffer.writeln(text);
-            }
-          }
-        }
+      try {
+        final insightsJson = jsonDecode(outputText) as Map<String, dynamic>;
+        return NpsInsights.fromJson(insightsJson);
+      } catch (e) {
+        dev.log('Erro ao parsear JSON da OpenAI: $e');
+        throw Exception('Erro ao processar insights da IA: $e');
       }
+    } else {
+      dev.log("Resposta inesperada da OpenAI: $body");
+      throw Exception("A IA respondeu, mas o app não conseguiu ler o texto retornado.");
     }
-
-    final text = buffer.toString().trim();
-    if (text.isEmpty) {
-      return 'A IA respondeu, mas o app nao conseguiu ler o texto retornado.';
-    }
-    return text;
   }
 }

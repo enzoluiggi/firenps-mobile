@@ -6,6 +6,8 @@ import '../models/nps_response.dart';
 import '../models/survey.dart';
 import '../models/user_profile.dart';
 import 'local_database.dart';
+import 'openai_insights_service.dart';
+import '../models/nps_insights.dart';
 
 class NpsMetrics {
   const NpsMetrics({
@@ -47,6 +49,7 @@ class FireNpsController extends ChangeNotifier {
   }
 
   final LocalDatabase _localDatabase = LocalDatabase();
+  final OpenAiInsightsService _openAiInsightsService = OpenAiInsightsService();
   final List<Company> _companies = [];
   final List<UserProfile> _users = [];
   final List<Contact> _contacts = [];
@@ -76,6 +79,43 @@ class FireNpsController extends ChangeNotifier {
   }
 
   String get currentCompanyId => _currentUser?.companyId ?? '';
+
+  NpsInsights? _currentNpsInsights;
+  NpsInsights? get currentNpsInsights => _currentNpsInsights;
+
+  Future<void> generateNpsInsights() async {
+    if (!_openAiInsightsService.isConfigured) {
+      // Tratar caso a chave da OpenAI não esteja configurada
+      return;
+    }
+
+    final comments = companyResponses
+        .where((response) => response.comment.isNotEmpty)
+        .map((response) => '${response.score}: ${response.comment}')
+        .join('\n');
+
+    if (comments.isEmpty) {
+      _currentNpsInsights = null;
+      notifyListeners();
+      return;
+    }
+
+    try {
+      _currentNpsInsights = await _openAiInsightsService.generateInsights(comments);
+    } catch (e) {
+      // Tratar erros da API da OpenAI
+      _currentNpsInsights = NpsInsights(
+        resumoExecutivo: 'Erro ao gerar insights: ${e.toString()}',
+        sentimentoGeral: 'N/A',
+        pontosPositivos: [],
+        pontosDeAtencao: [],
+        principaisReclamacoes: [],
+        acoesRecomendadas: [],
+        prioridadePassos: 'N/A',
+      );
+    }
+    notifyListeners();
+  }
 
   bool get canManageCompany {
     const roles = {'admin', 'gestor', 'analista'};
