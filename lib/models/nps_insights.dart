@@ -20,14 +20,30 @@ class NpsInsights {
   });
 
   factory NpsInsights.fromJson(Map<String, dynamic> json) {
+    String toStringValue(dynamic value) {
+      if (value == null) return '';
+      if (value is String) return value;
+      if (value is Map<String, dynamic>) return jsonEncode(value);
+      if (value is List) return value.map((e) => e.toString()).join(', ');
+      return value.toString();
+    }
+
+    List<String> toStringList(dynamic value) {
+      if (value == null) return [];
+      if (value is List) {
+        return value.map((e) => toStringValue(e)).toList();
+      }
+      return [toStringValue(value)];
+    }
+
     return NpsInsights(
-      resumoExecutivo: json['resumo_executivo'] as String,
-      sentimentoGeral: json['sentimento_geral'] as String,
-      pontosPositivos: List<String>.from(json['pontos_positivos'] as List),
-      pontosDeAtencao: List<String>.from(json['pontos_de_atencao'] as List),
-      principaisReclamacoes: List<String>.from(json['principais_reclamacoes'] as List),
-      acoesRecomendadas: List<String>.from(json['acoes_recomendadas'] as List),
-      prioridadePassos: json['prioridade_passos'] as String,
+      resumoExecutivo: toStringValue(json['resumo_executivo']),
+      sentimentoGeral: toStringValue(json['sentimento_geral']),
+      pontosPositivos: toStringList(json['pontos_positivos']),
+      pontosDeAtencao: toStringList(json['pontos_de_atencao']),
+      principaisReclamacoes: toStringList(json['principais_reclamacoes']),
+      acoesRecomendadas: toStringList(json['acoes_recomendadas']),
+      prioridadePassos: toStringValue(json['prioridade_passos']),
     );
   }
 
@@ -46,11 +62,11 @@ class NpsInsights {
   @override
   String toString() {
     return 'Resumo Executivo: $resumoExecutivo\n\n' +
-           'Sentimento Geral: $sentimentoGeral\n\n' +
-           'Pontos Positivos: ${pontosPositivos.join(', ')}\n\n' +
-           'Pontos de Atenção: ${pontosDeAtencao.join(', ')}\n\n' +
-           'Principais Reclamações: ${principaisReclamacoes.join(', ')}\n\n' +
-           'Ações Recomendadas: ${acoesRecomendadas.join(', ')}\n\n' +
-           'Prioridade para os Próximos Passos: $prioridadePassos';
+    'Sentimento Geral: $sentimentoGeral\n\n' +
+    'Pontos Positivos: ${pontosPositivos.join(', ')}\n\n' +
+    'Pontos de Atenção: ${pontosDeAtencao.join(', ')}\n\n' +
+    'Principais Reclamações: ${principaisReclamacoes.join(', ')}\n\n' +
+    'Ações Recomendadas: ${acoesRecomendadas.join(', ')}\n\n' +
+    'Prioridade para os Próximos Passos: $prioridadePassos';
   }
 }
