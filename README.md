@@ -1,47 +1,156 @@
-🔥 FireNPS Mobile
-O FireNPS Mobile é uma aplicação desenvolvida em Flutter que serve como complemento mobile à plataforma FireNPS Web. Seu principal objetivo é permitir que gestores acompanhem indicadores de satisfação do cliente, acessem relatórios e realizem análises automatizadas via Inteligência Artificial diretamente em dispositivos móveis.
-🚀 Funcionalidades Principais
+# 🔥 FireNPS Mobile
+
+O **FireNPS Mobile** é uma aplicação desenvolvida em **Flutter** que atua como complemento da plataforma **FireNPS Web**.
+
+Seu principal objetivo é permitir que gestores acompanhem indicadores de satisfação do cliente, consultem relatórios e realizem análises automatizadas por Inteligência Artificial diretamente em dispositivos móveis.
+
+---
+
+# 🚀 Funcionalidades Principais
+
 O aplicativo está estruturado em quatro módulos principais:
 
-    Dashboard Mobile: Visualização do NPS geral, zona de classificação (Excelência, Qualidade, Aperfeiçoamento ou Crítica), total de respostas e gráficos de distribuição de notas (promotores, neutros e detratores).
-    Gestão de Pesquisas: Listagem detalhada de pesquisas cadastradas, incluindo status, descrição e período de vigência.
-    Fire Insights (IA): Módulo de análise avançada que utiliza a API da OpenAI para transformar comentários qualitativos em relatórios estruturados com resumo executivo, sentimento geral e sugestões de ações.
-    Relatórios e Exportação: Filtros por pesquisa ou período, com suporte para exportação e compartilhamento de dados em formatos CSV, XLSX (Excel) e PDF.
+## 📊 Dashboard Mobile
 
-🛠️ Tecnologias e Arquitetura
-O projeto foi construído utilizando as seguintes tecnologias e padrões:
+* Visualização do NPS geral;
+* Exibição da zona de classificação:
 
-    Linguagem & Framework: Dart e Flutter.
-    Banco de Dados Local: SQLite (via plugin sqflite) para persistência de dados de autenticação e perfil do usuário.
-    Inteligência Artificial: Integração com a API da OpenAI.
-    Arquitetura: Organizada em camadas de telas (screens), modelos (models), controladores, temas e widgets reutilizáveis.
+  * Excelência
+  * Qualidade
+  * Aperfeiçoamento
+  * Crítica
+* Total de respostas recebidas;
+* Gráficos de distribuição de notas:
 
-📦 Dependências Principais
-O projeto utiliza as seguintes bibliotecas:
+  * Promotores
+  * Neutros
+  * Detratores
 
-    http: Comunicação com APIs externas.
-    sqflite & path: Banco de dados local.
-    excel: Geração de planilhas.
-    pdf & screenshot: Geração de relatórios visuais.
-    share_plus: Compartilhamento de arquivos.
+## 📝 Gestão de Pesquisas
 
-⚙️ Como Executar o Projeto
-Pré-requisitos
+* Listagem detalhada das pesquisas cadastradas;
+* Visualização de:
 
-    Flutter SDK instalado.
-    Dispositivo Android/iOS ou emulador compatível.
-    Chave de API da OpenAI (necessária para o módulo Fire Insights).
+  * Status
+  * Descrição
+  * Período de vigência
 
-Execução
-Para garantir a segurança, a chave da API não deve ficar fixa no código. Execute o aplicativo utilizando variáveis de ambiente:
+## 🤖 Fire Insights (IA)
 
+Módulo de análise avançada que utiliza a API da OpenAI para transformar comentários qualitativos em relatórios estruturados contendo:
+
+* Resumo executivo;
+* Sentimento geral;
+* Principais insights;
+* Sugestões de ações.
+
+## 📄 Relatórios e Exportação
+
+* Filtros por pesquisa;
+* Filtros por período;
+* Exportação e compartilhamento de dados nos formatos:
+
+  * CSV
+  * XLSX (Excel)
+  * PDF
+
+---
+
+# 🛠️ Tecnologias e Arquitetura
+
+O projeto foi desenvolvido utilizando as seguintes tecnologias:
+
+| Categoria               | Tecnologia       |
+| ----------------------- | ---------------- |
+| Linguagem               | Dart             |
+| Framework               | Flutter          |
+| Banco de Dados Local    | SQLite (sqflite) |
+| Inteligência Artificial | API da OpenAI    |
+
+### Estrutura do Projeto
+
+* **Screens** — Telas da aplicação;
+* **Models** — Representação das entidades de negócio;
+* **Controllers** — Controle das regras e fluxo da aplicação;
+* **Themes** — Padronização visual;
+* **Widgets** — Componentes reutilizáveis.
+
+---
+
+# 📦 Dependências Principais
+
+| Biblioteca   | Finalidade                    |
+| ------------ | ----------------------------- |
+| `http`       | Comunicação com APIs externas |
+| `sqflite`    | Persistência local            |
+| `path`       | Manipulação de caminhos       |
+| `excel`      | Geração de planilhas          |
+| `pdf`        | Geração de documentos PDF     |
+| `screenshot` | Captura de componentes        |
+| `share_plus` | Compartilhamento de arquivos  |
+
+---
+
+# ⚙️ Como Executar o Projeto
+
+## Pré-requisitos
+
+* Flutter SDK instalado;
+* Dispositivo Android/iOS ou emulador compatível;
+* Chave de API da OpenAI.
+
+## Execução
+
+Por questões de segurança, a chave da API não deve permanecer fixa no código-fonte.
+
+```bash
 flutter run --dart-define=OPENAI_API_KEY=SUA_CHAVE_AQUI
+```
 
-📊 Módulos Detalhados
+---
 
-    Autenticação: Permite login e cadastro de usuários com persistência local de dados da empresa e perfil.
-    Pesquisas: Exibe título, descrição, status e datas das pesquisas.
-    Insights: Gera uma análise estruturada contendo pontos positivos, pontos de atenção, reclamações recorrentes e prioridades de ação com base nos comentários dos clientes.
-    Configurações: Gerenciamento do perfil do usuário e encerramento de sessão.
+# 📊 Módulos Detalhados
 
-Desenvolvido por: Enzo Luiggi e João Pedro Marques Alves. Data: Junho de 2026.
+## 🔐 Autenticação
+
+Permite:
+
+* Login de usuários;
+* Cadastro de usuários;
+* Persistência local de dados da empresa e do perfil do usuário.
+
+## 📋 Pesquisas
+
+Exibe:
+
+* Título;
+* Descrição;
+* Status;
+* Datas de vigência.
+
+## 🧠 Insights
+
+Gera análises estruturadas contendo:
+
+* Pontos positivos;
+* Pontos de atenção;
+* Reclamações recorrentes;
+* Prioridades de ação.
+
+## ⚙️ Configurações
+
+Permite:
+
+* Gerenciamento do perfil do usuário;
+* Encerramento de sessão (logout).
+
+---
+
+# 👨‍💻 Equipe de Desenvolvimento
+
+**Desenvolvedores**
+
+* Enzo Luiggi
+* João Pedro Marques Alves
+
+**Data:** Junho de 2026.
